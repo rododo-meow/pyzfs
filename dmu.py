@@ -23,6 +23,8 @@ class Dnode:
                 raise NotImplementedError("Bonus " + Dnode.BONUS[dnode.bonustype] + " not implemented")
             dnode.bonus = Dnode.BONUS[dnode.bonustype](dnode.bonus)
             dnode.bonus.dnode = dnode
+        if dnode.type >= len(Dnode.PROMOTE):
+            raise NotImplementedError("Dnode type " + str(dnode.type) + " not implemented")
         if type(Dnode.PROMOTE[dnode.type]) == str:
             raise NotImplementedError(Dnode.PROMOTE[dnode.type] + " not implemented")
         return Dnode.PROMOTE[dnode.type](dnode, s)
@@ -62,6 +64,8 @@ SECPHYS: %x
         self.secphys)
         for i in range(self.nblkptr):
             s += "PTR[%d]: \n%s\n" % (i, util.shift(str(self.blkptr[i]), 1))
+        if self.bonus != None:
+            s += str(self.bonus) + "\n"
         return s[:-1]
 
 class ZilHeader:
@@ -75,6 +79,11 @@ class ZilHeader:
         return header
 
 class ObjSet:
+    OS_TYPE_NONE = 0
+    OS_TYPE_META = 1
+    OS_TYPE_ZFS = 2
+    OS_TYPE_ZVOL = 3
+
     @staticmethod
     def frombytes(s):
         objset = ObjSet()
@@ -83,8 +92,18 @@ class ObjSet:
         objset.type, objset.flags, objset.portable_mac, objset.local_mac = struct.unpack_from("<QQ32s32s", s[Dnode.SIZE + ZilHeader.SIZE:])
         return objset
 
+    def get_os_type_str(self):
+        if self.type == ObjSet.OS_TYPE_NONE:
+            return "NONE"
+        elif self.type == ObjSet.OS_TYPE_META:
+            return "DSL"
+        elif self.type == ObjSet.OS_TYPE_ZFS:
+            return "ZPL"
+        elif self.type == ObjSet.OS_TYPE_ZVOL:
+            return "ZVOL"
+
     def __str__(self):
-        return str(self.metadnode) + "\n" + str(self.zil_header) + "\n" + "OS_TYPE: %d" % (self.type)
+        return str(self.metadnode) + "\n" + str(self.zil_header) + "\n" + "OS_TYPE: %s(%d)" % (self.get_os_type_str(), self.type)
 
     def read_object(self, objid):
         blkid = objid * Dnode.SIZE // (self.metadnode.datablkszsec * 512)
@@ -166,8 +185,6 @@ class ZAPLeaf:
         return result
 
 class FatZAP:
-    SIZE = 128 * 1024
-
     @staticmethod
     def frombytes(s):
         zap = FatZAP()
@@ -210,6 +227,31 @@ SALT: %016x""" % (self.magic, self.blk, self.numblks, self.shift, self.nextblk, 
         except KeyError:
             return None
 
+class MicroZAPEntry:
+    @staticmethod
+    def frombytes(s):
+        entry = MicroZAPEntry()
+        entry.value, entry.cd, pad, entry.name = struct.unpack("<QIH50s", s)
+        entry.name = entry.name[:entry.name.find(b'\0') + 1]
+        return entry
+
+class MicroZAP:
+    @staticmethod
+    def frombytes(s):
+        zap = MicroZAP()
+        zap.block_type, zap.salt = struct.unpack_from("<QQ", s)
+        zap.array = [None] * ((len(s) - 64) // 64)
+        for i in range(len(zap.array)):
+            zap.array[i] = MicroZAPEntry.frombytes(s[64 + i * 64:128 + i * 64])
+        return zap
+
+    def list(self):
+        result = {}
+        for entry in self.array:
+            if entry.name[0] != b'\0':
+                result[entry.name] = entry.value
+        return result
+
 class ZAPObj(Dnode):
     ZBT_MICRO = 0x8000000000000003
     ZBT_HEADER = 0x8000000000000001
@@ -223,12 +265,15 @@ class ZAPObj(Dnode):
 
     def inherit(self, parent):
         Dnode.inherit(self, parent)
-        self.zap_type, = struct.unpack("<Q", self.pool.read_object(self, 0)[:8])
+        data = self.pool.read_object(self, 0)
+        self.zap_type, = struct.unpack("<Q", data[:8])
         if self.zap_type == ZAPObj.ZBT_HEADER:
-            data = self.pool.read_object(self, 0)
             self.fatzap = FatZAP.frombytes(data)
             self.fatzap.pool = self.pool
             self.fatzap.obj = self
+        elif self.zap_type == ZAPObj.ZBT_MICRO:
+            self.microzap = MicroZAP.frombytes(data)
+            self.microzap.pool = self.pool
 
     def __str__(self):
         s = Dnode.__str__(self) + "\n"
@@ -248,10 +293,14 @@ class ZAPObj(Dnode):
     def list(self):
         if self.zap_type == ZAPObj.ZBT_HEADER:
             return self.fatzap.list()
+        elif self.zap_type == ZAPObj.ZBT_MICRO:
+            return self.microzap.list()
 
     def get(self, name):
         if self.zap_type == ZAPObj.ZBT_HEADER:
             return self.fatzap.get(name)
+        elif self.zap_type == ZAPObj.ZBT_MICRO:
+            return self.microzap.get(name)
 
 class ObjDir(ZAPObj):
     @staticmethod
@@ -268,7 +317,11 @@ class DslDataset(Dnode):
         return ds
 
     def __str__(self):
-        return "CREATE: %x" % (self.bonus.creation_time)
+        return """CREATE: %x
+ACTIVE DATASET: %d""" % (self.bonus.creation_time, self.bonus.head_datset_obj)
+
+    def get_active_dataset(self):
+        return self.bonus.head_datset_obj
 
 class BonusDslDir:
     @staticmethod
@@ -280,37 +333,35 @@ class BonusDslDir:
             struct.unpack_from("<11Q", s)
         return bonus
 
-Dnode.PROMOTE = (
-        "NONE",
-        ObjDir.promote,
-        "OBJ_ARR",
-        "NVLIST",
-        "NVLIST_SIZE",
-        "BPLIST",
-        "BPLIST_HDR",
-        "SPACE_MAP_HEADER",
-        "SPACE_MAP",
-        "ILOG",
-        lambda x, y: x,
-        lambda x, y: x,
-        DslDataset.promote,
-        "DSL_DATASET_CHILD_MAP",
-        "OBJSET_SNAP_MAP",
-        "DSL_PROPS",
-        "DSL_OBJSET",
-        "ZNODE",
-        "ACL",
-        "FILE_CONTENT",
-        "DIR_CONTENT",
-        "MASTER_NODE",
-        "DELETE_QUEUE",
-        "ZVOL",
-        "ZVOL_PROP"
-)
+class BonusDslDataset:
+    @staticmethod
+    def frombytes(s):
+        bonus = BonusDslDataset()
+        bonus.dir_obj, bonus.prev_snap_obj, bonus.prev_snap_txg, bonus.next_snap_obj, \
+                bonus.snapnames_zapobj, bonus.num_children, bonus.creation_time, \
+                bonus.creation_txg, bonus.deadlist_obj, bonus.used_bytes, \
+                bonus.compressed_bytes, bonus.uncompressed_bytes, bonus.unique_bytes, \
+                bonus.fsid_guid, bonus.guid, bonus.flags = \
+            struct.unpack_from("<16Q", s)
+        bonus.bp = BlkPtr.frombytes(s[128:])
+        return bonus
+
+    def __str__(self):
+        return """DIR_OBJ: %d
+BP: %s""" % (self.dir_obj, self.bp.summary())
+
+Dnode.PROMOTE = dmu_constant.TYPES.copy()
+Dnode.PROMOTE += [None] * (256 - len(Dnode.PROMOTE))
+Dnode.PROMOTE[1] = ObjDir.promote
+Dnode.PROMOTE[10] = lambda x, y: x
+Dnode.PROMOTE[11] = lambda x, y: x
+Dnode.PROMOTE[12] = DslDataset.promote
+Dnode.PROMOTE[21] = ZAPObj.promote
+Dnode.PROMOTE[196] = lambda x, y: x
 
 Dnode.BONUS = [None] * 18
 Dnode.BONUS[4] = "PACKED_NVLIST_SIZE"
 Dnode.BONUS[7] = "SPACE_MAP_HEADER"
 Dnode.BONUS[12] = BonusDslDir.frombytes
-Dnode.BONUS[16] = "DSL_DATASET"
+Dnode.BONUS[16] = BonusDslDataset.frombytes
 Dnode.BONUS[17] = "ZNODE"

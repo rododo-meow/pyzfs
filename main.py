@@ -4,9 +4,9 @@ from raidz import RaidZVdev
 from zpool import ZPool
 import binascii
 
-v1 = FileVdev(open("../vdev1", "rb"))
-v2 = FileVdev(open("../vdev2", "rb"))
-v3 = FileVdev(open("../vdev3", "rb"))
+v1 = FileVdev(open("vdev1", "rb"))
+v2 = FileVdev(open("vdev2", "rb"))
+v3 = FileVdev(open("vdev3", "rb"))
 raiddev = RaidZVdev([v1, v2, v3], 1, 9)
 pool = ZPool([raiddev])
 ub = [Uberblock.at(v1, 128*1024+i*1024) for i in range(128)]
@@ -18,5 +18,10 @@ mos = pool.read(best_ub.rootbp)
 dir = mos.read_object(1)
 root_dataset = dir.get('root_dataset')[0]
 root_dataset = mos.read_object(root_dataset)
-print(root_dataset)
+active_dataset = root_dataset.get_active_dataset()
+active_dataset = mos.read_object(active_dataset)
+zpl = pool.read(active_dataset.bonus.bp)
+master = zpl.read_object(1)
+print("got master node")
+print(master.list())
 #print(binascii.b2a_hex(od))

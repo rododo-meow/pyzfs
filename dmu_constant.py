@@ -25,6 +25,8 @@ TYPES = [
         "ZVOL",
         "ZVOL_PROP"
 ]
+TYPES += [None] * (256 - len(TYPES))
+TYPES[196] = "ZAP_METADATA"
 
 CKFUNC = [
         "INHERIT",

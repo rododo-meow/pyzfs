@@ -48,7 +48,7 @@ def lz4_decompress(data):
 COMPFUNC = (
         "INHERIT",
         "LZJB",
-        "NONE",
+        (lambda x: x, lambda x: x),
         "LZJB",
         "EMPTY",
         "GZ-1",
@@ -68,6 +68,8 @@ def compress(comp, data):
     return COMPFUNC[comp][0](data)
 
 def decompress(comp, data):
+    if type(COMPFUNC[comp]) == str:
+        raise NotImplementedError(COMPFUNC[comp] + " not implemented")
     return COMPFUNC[comp][1](data)
 
 def read(vdev, bp):
