@@ -19,10 +19,13 @@ class Dnode:
             dnode.blkptr[i] = BlkPtr.frombytes(s[64 + i * 128:64 + i * 128 + 128])
         dnode.bonus = s[64 + dnode.nblkptr * 128:64 + dnode.nblkptr * 128 + dnode.bonuslen]
         if dnode.bonustype != 0:
-            if type(Dnode.BONUS[dnode.bonustype]) == str:
-                raise NotImplementedError("Bonus " + Dnode.BONUS[dnode.bonustype] + " not implemented")
-            dnode.bonus = Dnode.BONUS[dnode.bonustype](dnode.bonus)
-            dnode.bonus.dnode = dnode
+            if dnode.bonustype >= len(Dnode.BONUS):
+                print("Bonus " + str(dnode.bonustype) + " not implemented")
+            elif type(Dnode.BONUS[dnode.bonustype]) == str:
+                print("Bonus " + Dnode.BONUS[dnode.bonustype] + " not implemented")
+            else:
+                dnode.bonus = Dnode.BONUS[dnode.bonustype](dnode.bonus)
+                dnode.bonus.dnode = dnode
         if dnode.type >= len(Dnode.PROMOTE):
             raise NotImplementedError("Dnode type " + str(dnode.type) + " not implemented")
         if type(Dnode.PROMOTE[dnode.type]) == str:
@@ -252,6 +255,12 @@ class MicroZAP:
                 result[entry.name] = entry.value
         return result
 
+    def get(self, name):
+        try:
+            return self.list()[name.encode('ascii') + b'\0']
+        except KeyError:
+            return None
+
 class ZAPObj(Dnode):
     ZBT_MICRO = 0x8000000000000003
     ZBT_HEADER = 0x8000000000000001
@@ -277,7 +286,6 @@ class ZAPObj(Dnode):
 
     def __str__(self):
         s = Dnode.__str__(self) + "\n"
-        return s
         if self.zap_type == ZAPObj.ZBT_MICRO:
             s += "TYPE: MICRO"
         elif self.zap_type == ZAPObj.ZBT_HEADER:
@@ -356,12 +364,14 @@ Dnode.PROMOTE[1] = ObjDir.promote
 Dnode.PROMOTE[10] = lambda x, y: x
 Dnode.PROMOTE[11] = lambda x, y: x
 Dnode.PROMOTE[12] = DslDataset.promote
+Dnode.PROMOTE[20] = ZAPObj.promote
 Dnode.PROMOTE[21] = ZAPObj.promote
 Dnode.PROMOTE[196] = lambda x, y: x
 
-Dnode.BONUS = [None] * 18
+Dnode.BONUS = [None] * 45
 Dnode.BONUS[4] = "PACKED_NVLIST_SIZE"
 Dnode.BONUS[7] = "SPACE_MAP_HEADER"
 Dnode.BONUS[12] = BonusDslDir.frombytes
 Dnode.BONUS[16] = BonusDslDataset.frombytes
 Dnode.BONUS[17] = "ZNODE"
+Dnode.BONUS[44] = "SA"

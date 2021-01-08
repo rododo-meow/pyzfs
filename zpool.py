@@ -23,8 +23,7 @@ class ZPool:
         self.vdevs = vdevs
 
     def read_raw(self, bp):
-        dva = bp.dva[0]
-        return zio.read(self.vdevs[dva.vdev], bp)
+        return zio.read(self.vdevs, bp)
 
     def read_object(self, dnode, blkid, nblk = 1):
         if not isinstance(dnode, Dnode):
