@@ -2,6 +2,7 @@ import struct
 import lz4
 import binascii
 from dmu import Dnode, ObjSet
+from blkptr import BlkPtr
 
 def fletcher2(data):
     return False
@@ -72,15 +73,19 @@ def decompress(comp, data):
         raise NotImplementedError(COMPFUNC[comp] + " not implemented")
     return COMPFUNC[comp][1](data)
 
-def read(vdev, bp):
-    dva = bp.dva[0]
-    data = vdev.read(dva.offset, bp.psize)
-    data = data[:bp.psize]
-    if bp.checksum != checksum(bp.cksum, data):
-        for i in range(len(data) // 512):
-            print(binascii.b2a_hex(data[i*512:i*512+512]))
-        print("Bad checksum")
-        print("BP: %s" % (binascii.b2a_hex(bp.checksum)))
-        print("My: %s" % (binascii.b2a_hex(checksum(bp.cksum, data))))
-    data = decompress(bp.comp, data)
-    return data
+def read(vdevs, bp):
+    if bp.embedded:
+        data = bp.decode()
+        return COMPFUNC[bp.comp][1](data)
+    else:
+        dva = bp.dva[0]
+        data = vdevs[dva.vdev].read(dva.offset, bp.psize)
+        data = data[:bp.psize]
+        if bp.checksum != checksum(bp.cksum, data):
+            for i in range(len(data) // 512):
+                print(binascii.b2a_hex(data[i*512:i*512+512]))
+            print("Bad checksum")
+            print("BP: %s" % (binascii.b2a_hex(bp.checksum)))
+            print("My: %s" % (binascii.b2a_hex(checksum(bp.cksum, data))))
+        data = decompress(bp.comp, data)
+        return data
