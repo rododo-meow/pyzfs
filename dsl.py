@@ -10,7 +10,7 @@ class DslDataset(Dnode):
         return ds
 
     def __str__(self):
-        return """CREATE: %x
+        return Dnode.__str__(self) + "\n" + """CREATE: %x
 ACTIVE DATASET: %d""" % (self.bonus.creation_time, self.bonus.head_datset_obj)
 
     def get_active_dataset(self):
