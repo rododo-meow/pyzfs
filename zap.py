@@ -102,7 +102,7 @@ SALT: %016x""" % (self.magic, self.blk, self.numblks, self.shift, self.nextblk, 
         for i in range(len(self.pointer_tbl)):
             blkid = self.pointer_tbl[i]
             if blkid != 0 and not blkid in visited:
-                leaf = self.pool.read_object(self.obj, blkid)
+                leaf = self.pool.read_block(self.obj, blkid)
                 leaf = ZAPLeaf.frombytes(leaf)
                 result.update(leaf.list())
                 visited += [blkid]
@@ -159,7 +159,7 @@ class ZAPObj(Dnode):
 
     def inherit(self, parent):
         Dnode.inherit(self, parent)
-        data = self.pool.read_object(self, 0)
+        data = self.pool.read_block(self, 0)
         self.zap_type, = struct.unpack("<Q", data[:8])
         if self.zap_type == ZAPObj.ZBT_HEADER:
             self.fatzap = FatZAP.frombytes(data)

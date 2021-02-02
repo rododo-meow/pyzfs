@@ -46,7 +46,7 @@ class ObjSet:
 
     def read_object(self, objid):
         blkid = objid * Dnode.SIZE // (self.metadnode.datablkszsec * 512)
-        dnode = self.pool.read_object(self.metadnode, blkid)
+        dnode = self.pool.read_block(self.metadnode, blkid)
         dnode = dnode[objid * Dnode.SIZE % (self.metadnode.datablkszsec * 512):]
         dnode = dnode[:Dnode.SIZE]
         dnode = Dnode.frombytes(dnode, self.pool)

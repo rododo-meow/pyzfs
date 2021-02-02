@@ -25,7 +25,7 @@ class ZPool:
     def read_raw(self, bp):
         return zio.read(self.vdevs, bp)
 
-    def read_object(self, dnode, blkid, nblk = 1):
+    def read_block(self, dnode, blkid, nblk = 1):
         if not isinstance(dnode, Dnode):
             raise TypeError("Require Dnode")
         curr_level = dnode.blkptr
@@ -63,5 +63,3 @@ class ZPool:
     def read(self, p):
         if isinstance(p, BlkPtr):
             return self.read_bp(p)
-        elif isinstance(p, Dnode):
-            return self.read_object(p)
