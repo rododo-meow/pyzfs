@@ -29,7 +29,10 @@ class ObjSet:
         objset.metadnode = Dnode.frombytes(s)
         objset.zil_header = ZilHeader.frombytes(s[Dnode.SIZE:])
         objset.type, objset.flags, objset.portable_mac, objset.local_mac = struct.unpack_from("<QQ32s32s", s[Dnode.SIZE + ZilHeader.SIZE:])
-        return objset
+        if objset.type == ObjSet.OS_TYPE_ZFS:
+            return ObjSet.ZFS.promote(objset, s)
+        else:
+            return objset
 
     def get_os_type_str(self):
         if self.type == ObjSet.OS_TYPE_NONE:
