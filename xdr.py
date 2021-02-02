@@ -99,7 +99,7 @@ class XDRNVList:
             elif nvp_type == NVPair.DATA_TYPE_NVLIST_ARRAY:
                 nvp.value = [None] * nvp_nelem
                 for i in range(nvp_nelem):
-                    nvp.value[i] = XDRNVList.frombytes(nvp_data.data)
+                    nvp.value[i] = XDRNVList.fromxdr(nvp_data)
             nvl.pairs += [nvp]
         return nvl
 
