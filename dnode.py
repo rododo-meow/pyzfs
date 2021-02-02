@@ -40,7 +40,8 @@ class Dnode:
                 parent.extra_slots, parent.maxblkid, parent.secphys, parent.blkptr, parent.pool, parent.bonus
 
     def __str__(self):
-        s = """TYPE: %s
+        s = """PYTHON TYPE: %s
+TYPE: %s
 INDBLKSHIFT: %d
 NLEVELS: %d
 NBLKPTR: %d
@@ -52,7 +53,8 @@ DATABLKSZSEC: %x
 BONUSLEN: %d
 MAXBLKID: %x
 SECPHYS: %x
-""" % (dmu_constant.TYPES[self.type],
+""" % (self.__class__.__name__,
+        dmu_constant.TYPES[self.type],
         self.indblkshift,
         self.nlevels,
         self.nblkptr,
