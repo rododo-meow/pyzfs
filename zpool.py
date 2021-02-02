@@ -1,6 +1,8 @@
 import zio
+import dmu
 from blkptr import BlkPtr
-from dmu import Dnode, ObjSet
+from dnode import Dnode
+from objset import ObjSet
 import binascii
 
 PARSER = (

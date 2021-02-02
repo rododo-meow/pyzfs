@@ -1,5 +1,7 @@
 from blkptr import BlkPtr
 import struct
+import dmu_constant
+import util
 
 class Dnode:
     SIZE = 512
@@ -67,3 +69,13 @@ SECPHYS: %x
         if self.bonus != None:
             s += str(self.bonus) + "\n"
         return s[:-1]
+
+Dnode.PROMOTE = dmu_constant.TYPES.copy()
+Dnode.PROMOTE += [None] * (256 - len(Dnode.PROMOTE))
+Dnode.PROMOTE[10] = lambda x, y: x # DNODE
+
+Dnode.BONUS = [None] * 45
+Dnode.BONUS[4] = "PACKED_NVLIST_SIZE"
+Dnode.BONUS[7] = "SPACE_MAP_HEADER"
+Dnode.BONUS[17] = "ZNODE"
+Dnode.BONUS[44] = "SA"

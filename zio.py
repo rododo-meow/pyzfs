@@ -1,7 +1,6 @@
 import struct
 import lz4
 import binascii
-from dmu import Dnode, ObjSet
 from blkptr import BlkPtr
 
 def fletcher2(data):

@@ -1,4 +1,4 @@
-from dmu import Dnode
+from dnode import Dnode
 import struct
 
 class ZAPLeafChunk:
@@ -194,3 +194,13 @@ class ZAPObj(Dnode):
             return self.fatzap.get(name)
         elif self.zap_type == ZAPObj.ZBT_MICRO:
             return self.microzap.get(name)
+Dnode.PROMOTE[20] = ZAPObj.promote # DIR_CONTENT
+Dnode.PROMOTE[21] = ZAPObj.promote # MASTER_NODE
+
+class ObjDir(ZAPObj):
+    @staticmethod
+    def promote(parent, s):
+        objdir = ObjDir()
+        ZAPObj.inherit(objdir, parent)
+        return objdir
+Dnode.PROMOTE[1] = ObjDir.promote # OBJ_DIR
