@@ -1,4 +1,5 @@
 import struct
+from xdr import XDRNVList
 
 class Vdev:
     def read64le(self, off):
@@ -17,3 +18,8 @@ class FileVdev(Vdev):
             return self.f.read(len)
         else:
             abd.scatter[0][0][abd.scatter[0][1]:abd.scatter[0][1] + abd.scatter[0][2]] = self.f.read(len)
+
+    def read_nvpairs(self):
+        data = self.read(16 * 1024, 112 * 1024)
+        data = XDRNVList.frombytes(data[4:])
+        return data
