@@ -69,7 +69,10 @@ SECPHYS: %x
         for i in range(self.nblkptr):
             s += "PTR[%d]: \n%s\n" % (i, util.shift(str(self.blkptr[i]), 1))
         if self.bonus != None:
-            s += str(self.bonus) + "\n"
+            if type(self.bonus) != bytes:
+                s += str(self.bonus) + "\n"
+            else:
+                s += "BONUS: ?\n"
         return s[:-1]
 
 Dnode.PROMOTE = dmu_constant.TYPES.copy()
