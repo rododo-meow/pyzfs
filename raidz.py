@@ -23,7 +23,7 @@ def raidz_map_alloc(abd, offset, size, ashift, dcols, nparity):
     # The starting RAIDZ (parent) vdev sector of the block.
     b = offset >> ashift
     # The zio's size in units of the vdev's minimum sector size.
-    s = size >> ashift
+    s = (size + (1 << ashift) - 1) >> ashift
     # The first column for this stripe.
     f = b % dcols
     # The starting byte offset on each child vdev.
