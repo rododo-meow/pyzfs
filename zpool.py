@@ -31,6 +31,7 @@ class ZPool:
         if not isinstance(dnode, Dnode):
             raise TypeError("Require Dnode")
         curr_level = dnode.blkptr
+        data = b''
         for i in range(dnode.nlevels - 1, -1, -1):
             data = b''
             for idx in range(len(curr_level)):
