@@ -77,14 +77,17 @@ def read(vdevs, bp):
         data = bp.decode()
         return COMPFUNC[bp.comp][1](data)
     else:
-        dva = bp.dva[0]
-        data = vdevs[dva.vdev].read(dva.offset, bp.psize)
-        data = data[:bp.psize]
-        if bp.checksum != checksum(bp.cksum, data):
-            for i in range(len(data) // 512):
-                print(binascii.b2a_hex(data[i*512:i*512+512]))
-            print("Bad checksum")
-            print("BP: %s" % (binascii.b2a_hex(bp.checksum)))
-            print("My: %s" % (binascii.b2a_hex(checksum(bp.cksum, data))))
-        data = decompress(bp.comp, data)
-        return data
+        for i in range(3):
+            dva = bp.dva[i]
+            if dva.asize == 0:
+                continue
+            data = vdevs[dva.vdev].read(dva.offset, bp.psize)
+            data = data[:bp.psize]
+            if bp.checksum != checksum(bp.cksum, data):
+                print("Bad checksum")
+                print("BP: %s" % (binascii.b2a_hex(bp.checksum)))
+                print("My: %s" % (binascii.b2a_hex(checksum(bp.cksum, data))))
+                continue
+            data = decompress(bp.comp, data)
+            return data
+        return None
