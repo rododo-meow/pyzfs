@@ -78,6 +78,7 @@ SECPHYS: %x
 Dnode.PROMOTE = dmu_constant.TYPES.copy()
 Dnode.PROMOTE += [None] * (256 - len(Dnode.PROMOTE))
 Dnode.PROMOTE[10] = lambda x, y: x # DNODE
+Dnode.PROMOTE[19] = lambda x, y: x # FILE_CONTENT
 
 Dnode.BONUS = [None] * 45
 Dnode.BONUS[4] = "PACKED_NVLIST_SIZE"
