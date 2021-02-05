@@ -27,8 +27,11 @@ class Dnode:
                 dnode.bonus.dnode = dnode
         if dnode.type >= len(Dnode.PROMOTE):
             raise NotImplementedError("Dnode type " + str(dnode.type) + " not implemented")
-        if type(Dnode.PROMOTE[dnode.type]) == str:
-            raise NotImplementedError(Dnode.PROMOTE[dnode.type] + " not implemented")
+        elif Dnode.PROMOTE[dnode.type] == None:
+            raise NotImplementedError("Dnode type " + str(dnode.type) + " not implemented")
+        elif type(Dnode.PROMOTE[dnode.type]) == str:
+            print(Dnode.PROMOTE[dnode.type] + " not implemented")
+            return dnode
         return Dnode.PROMOTE[dnode.type](dnode, s)
 
     def inherit(self, parent):
