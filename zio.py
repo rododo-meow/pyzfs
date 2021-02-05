@@ -1,5 +1,5 @@
 import struct
-import lz4
+import lz4.block
 import binascii
 from blkptr import BlkPtr
 
@@ -43,7 +43,7 @@ def lz4_decompress(data):
     ilen = struct.unpack_from(">I", data)[0]
     if len(data) < 4 + ilen:
         raise IndexError("Buffer too short")
-    return lz4.decompress(data[4:4 + ilen])
+    return lz4.block.decompress(data[4:4 + ilen], 128 * 1024)
 
 COMPFUNC = (
         "INHERIT",
