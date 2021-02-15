@@ -166,3 +166,12 @@ class RaidZVdev(Vdev):
         for i in range(p.rm_firstdatacol, p.rm_cols):
             self.vdevs[p.rm_col[i].rc_devidx].read(p.rm_col[i].rc_offset + 4*1024*1024, p.rm_col[i].rc_size, p.rm_col[i].rc_abd)
         return abd.get()
+
+    def get_asize(self, psize):
+        ashift = self.ashift
+        cols = len(self.vdevs)
+        nparity = self.nparity
+        asize = ((psize - 1) >> ashift) + 1
+        asize += nparity * ((asize + cols - nparity - 1) // (cols - nparity))
+        asize = roundup(asize, nparity + 1) << ashift
+        return asize
