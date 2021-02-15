@@ -18,6 +18,7 @@ class DVA:
 
 class BlkPtr:
     ETYPE_DATA = 0
+    SIZE = 128
 
     @staticmethod
     def frombytes(s):

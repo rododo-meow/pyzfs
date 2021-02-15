@@ -8,6 +8,7 @@ from dnode import Dnode
 import dmu_constant
 import util
 import struct
+from blkptr import BlkPtr
 
 def open_vdev():
     global v1, v2, v3, raiddev, pool
@@ -31,27 +32,34 @@ def scan():
             v1.clear_hit_rate()
             v2.clear_hit_rate()
             v3.clear_hit_rate()
-        dnode = raiddev.read(i * 4096, 4096)
-        input_size, = struct.unpack_from(">I", dnode)
+        block = raiddev.read(i * 4096, 4096)
+        input_size, = struct.unpack_from(">I", block)
         if input_size > 128 * 1024:
             i += 1
             continue
-        dnode = raiddev.read(i * 4096, 4 + input_size)
+        block = raiddev.read(i * 4096, 4 + input_size)
         try:
-            dnode = lz4_decompress(dnode)
+            block = lz4_decompress(block)
         except:
             i += 1
             continue
         try:
             print("Found at 0x%x" % (i * 4096))
-            for j in range(len(dnode) // Dnode.SIZE):
-                dnoden = Dnode.frombytes(dnode[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
-                if dnoden.type != 0 and dnoden.type < len(dmu_constant.TYPES):
-                    print("    [%d]: %s" % (j, dmu_constant.TYPES[dnoden.type]))
-                if dnoden.type == 20:
-                    print(dnoden.list())
-                elif dnoden.type == 19:
-                    print("        filelen: %d" % (dnoden.secphys if (dnoden.flags & 1 != 0) else (dnoden.secphys * 512)))
+            for j in range(len(block) // Dnode.SIZE):
+                dnode = Dnode.frombytes(block[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
+                if dnode.type != 0 and dnode.type < len(dmu_constant.TYPES) and dmu_constant.TYPES[dnode.type] != None:
+                    print("    [%d]: %s" % (j, dmu_constant.TYPES[dnode.type]))
+                if dnode.type == 20:
+                    print(dnode.list())
+                elif dnode.type == 19:
+                    print("        filelen: %d" % (dnode.secphys if (dnode.flags & 1 != 0) else (dnode.secphys * 512)))
+            for j in range(len(block) // BlkPtr.SIZE):
+                ptr = BlkPtr.frombytes(block[j * BlkPtr.SIZE:(j + 1) * BlkPtr.SIZE])
+                if ptr.embedded and ptr.etype == BlkPtr.ETYPE_DATA:
+                    print("    [%d]: %s" % (j, dmu_constant.TYPES[dnode.type]))
+                elif not ptr.embedded and ptr.dva[0].vdev == 0 and ptr.dva[0].offset & 0x1ff == 0 and ptr.dva[0].asize & 0xfff == 0 and (ptr.comp == 15 or ptr.comp == 2) and ptr.type == 20:
+                    print("    [%d]:" % (j,))
+                    print(util.shift(str(ptr), 2))
         except Exception as e:
             pass
             print("Bad at 0x%x" % (i * 4096))
