@@ -20,15 +20,19 @@ class Dnode:
         if dnode.bonustype != 0:
             if dnode.bonustype >= len(Dnode.BONUS):
                 print("Bonus " + str(dnode.bonustype) + " not implemented")
+            elif Dnode.BONUS[dnode.bonustype] == None:
+                print("Bonus " + str(dnode.bonustype) + " not implemented")
             elif type(Dnode.BONUS[dnode.bonustype]) == str:
                 print("Bonus " + Dnode.BONUS[dnode.bonustype] + " not implemented")
             else:
                 dnode.bonus = Dnode.BONUS[dnode.bonustype](dnode.bonus)
                 dnode.bonus.dnode = dnode
         if dnode.type >= len(Dnode.PROMOTE):
-            raise NotImplementedError("Dnode type " + str(dnode.type) + " not implemented")
+            print("Dnode type " + str(dnode.type) + " not implemented")
+            return dnode
         elif Dnode.PROMOTE[dnode.type] == None:
-            raise NotImplementedError("Dnode type " + str(dnode.type) + " not implemented")
+            print("Dnode type " + str(dnode.type) + " not implemented")
+            return dnode
         elif type(Dnode.PROMOTE[dnode.type]) == str:
             print(Dnode.PROMOTE[dnode.type] + " not implemented")
             return dnode
@@ -85,6 +89,7 @@ Dnode.PROMOTE[19] = lambda x, y: x # FILE_CONTENT
 
 Dnode.BONUS = [None] * 45
 Dnode.BONUS[4] = "PACKED_NVLIST_SIZE"
+Dnode.BONUS[6] = "BPOBJ_HDR"
 Dnode.BONUS[7] = "SPACE_MAP_HEADER"
 Dnode.BONUS[17] = "ZNODE"
 Dnode.BONUS[44] = "SA"
