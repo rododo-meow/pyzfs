@@ -49,6 +49,8 @@ def scan():
                     print("    [%d]: %s" % (j, dmu_constant.TYPES[dnoden.type]))
                 if dnoden.type == 20:
                     print(dnoden.list())
+                elif dnoden.type == 19:
+                    print("        filelen: %d" % (dnoden.secphys if (dnoden.flags & 1 != 0) else (dnoden.secphys * 512)))
         except Exception as e:
             pass
             print("Bad at 0x%x" % (i * 4096))
