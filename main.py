@@ -41,7 +41,6 @@ def scan():
         except:
             i += 1
             continue
-        i += raiddev.get_asize(4 + input_size) // 4096
         try:
             dnode0 = Dnode.frombytes(dnode, pool)
             dnode1 = Dnode.frombytes(dnode[-Dnode.SIZE:], pool)
@@ -52,6 +51,7 @@ def scan():
             pass
             print("Found at 0x%x" % (i * 4096))
             print(e)
+        i += raiddev.get_asize(4 + input_size) // 4096
 
 def dump():
     ub = [Uberblock.at(v1, 128*1024+i*1024) for i in range(128)]
