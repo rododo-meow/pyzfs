@@ -42,14 +42,15 @@ def scan():
             i += 1
             continue
         try:
-            dnode0 = Dnode.frombytes(dnode, pool)
-            dnode1 = Dnode.frombytes(dnode[-Dnode.SIZE:], pool)
             print("Found at 0x%x" % (i * 4096))
-            print(util.shift(str(dnode0), 1))
-            print(util.shift(str(dnode1), 1))
+            for j in range(len(dnode) // Dnode.SIZE):
+                dnoden = Dnode.frombytes(dnode[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
+                print("    [%d]: %s" % (j, dmu_constant.TYPES[dnoden.type]))
+                if dnoden.type == 20:
+                    print(dnoden.list())
         except Exception as e:
             pass
-            print("Found at 0x%x" % (i * 4096))
+            print("Bad at 0x%x" % (i * 4096))
             print(e)
         i += raiddev.get_asize(4 + input_size) // 4096
 
