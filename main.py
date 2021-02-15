@@ -45,7 +45,8 @@ def scan():
             print("Found at 0x%x" % (i * 4096))
             for j in range(len(dnode) // Dnode.SIZE):
                 dnoden = Dnode.frombytes(dnode[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
-                print("    [%d]: %s" % (j, dmu_constant.TYPES[dnoden.type]))
+                if dnoden.type != 0 and dnoden.type < len(dmu_constant.TYPES):
+                    print("    [%d]: %s" % (j, dmu_constant.TYPES[dnoden.type]))
                 if dnoden.type == 20:
                     print(dnoden.list())
         except Exception as e:
