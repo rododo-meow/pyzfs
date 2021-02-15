@@ -42,11 +42,14 @@ class CyclicCache:
             return None
 
     def feed(self, addr, data):
-        if self.cache[self.head] != None:
-            del self.quickmap[self.cache[self.head][0]]
-        self.quickmap[addr] = self.head
-        self.cache[self.head] = (addr, data)
-        self.head = (self.head + 1) % self.nentries
+        if addr in self.quickmap:
+            self.cache[self.quickmap[addr]] = (addr, data)
+        else:
+            if self.cache[self.head] != None:
+                del self.quickmap[self.cache[self.head][0]]
+            self.quickmap[addr] = self.head
+            self.cache[self.head] = (addr, data)
+            self.head = (self.head + 1) % self.nentries
 
 class CachedVdev(Vdev):
     def __init__(self, vdev, cache, prefetch):
