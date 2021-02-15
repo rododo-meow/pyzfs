@@ -56,13 +56,27 @@ class CachedVdev(Vdev):
         self.low = vdev
         self.cache = cache
         self.prefetch = prefetch
+        self.access = 0
+        self.hit = 0
+
+    def get_hit_rate(self):
+        print("Access %d" % (self.access))
+        print("Hit %d" % (self.hit))
+        return self.hit / self.access if self.access != 0 else 1.0
+
+    def clear_hit_rate(self):
+        self.access = 0
+        self.hit = 0
 
     def __check_and_read(self, addr):
+        self.access += 1
         data = self.cache.get(addr)
         if data == None:
             data = self.low.read(addr, self.prefetch * 512)
             for i in range(self.prefetch):
                 self.cache.feed(addr + (i << 9), data[i << 9:(i + 1) << 9])
+        else:
+            self.hit += 1
         return data[:512]
 
     def read(self, off, len, abd=None):
