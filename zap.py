@@ -69,7 +69,7 @@ class ZAPLeaf:
         result = {}
         for i in range(len(self.chunks)):
             if self.chunks[i].type == ZAPLeafChunk.CHUNK_ENTRY:
-                result[self.chunks[i].get_name()] = self.chunks[i].get_value()
+                result[self.chunks[i].get_name().decode('utf8')] = self.chunks[i].get_value()
         return result
 
 class FatZAP:
@@ -137,7 +137,7 @@ class MicroZAP:
         result = {}
         for entry in self.array:
             if entry.name[0] != b'\0':
-                result[entry.name] = entry.value
+                result[entry.name.decode('utf8')] = entry.value
         return result
 
     def get(self, name):
