@@ -26,6 +26,11 @@ class BonusDslDir:
                 bonus.uncompressed_bytes, bonus.quota, bonus.reserved, bonus.props_zapobj = \
             struct.unpack_from("<11Q", s)
         return bonus
+
+    def __str__(self):
+        return """CREATE: %x
+USED: %d""" % (self.creation_time,
+            self.used_bytes)
 Dnode.BONUS[12] = BonusDslDir.frombytes
 
 class BonusDslDataset:
