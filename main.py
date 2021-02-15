@@ -21,7 +21,7 @@ def open_vdev():
     pool = ZPool([raiddev])
 
 def scan():
-    i = 0x1c1ba4f000//4096
+    i = 0
     while i < 9*1024*1024*1024*1024//4096:
         if i * 4096 % (1024 * 1024 * 1024) == 0:
             print("Scanned %d GB" % (i * 4096 // (1024*1024*1024)))
@@ -31,11 +31,12 @@ def scan():
             v1.clear_hit_rate()
             v2.clear_hit_rate()
             v3.clear_hit_rate()
-        dnode = raiddev.read(i * 4096, 128 * 1024)
+        dnode = raiddev.read(i * 4096, 4096)
         input_size, = struct.unpack_from(">I", dnode)
         if input_size > 128 * 1024:
             i += 1
             continue
+        dnode = raiddev.read(i * 4096, 4 + input_size)
         try:
             dnode = lz4_decompress(dnode)
         except:
