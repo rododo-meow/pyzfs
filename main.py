@@ -22,29 +22,30 @@ def open_vdev():
     pool = ZPool([raiddev])
 
 def scan():
+    ashift = raiddev.ashift
     i = 0
-    while i < 9*1024*1024*1024*1024//4096:
-        if i * 4096 % (1024 * 1024 * 1024) == 0:
-            print("Scanned %d GB" % (i * 4096 // (1024*1024*1024)))
+    while i < 9*1024*1024*1024*1024 >> ashift:
+        if (i << ashift) % (1024 * 1024 * 1024) == 0:
+            print("Scanned %d GB" % ((i << ashift) // (1024*1024*1024)))
             print("Hit rate 1: %f%%" % v1.get_hit_rate())
             print("Hit rate 2: %f%%" % v2.get_hit_rate())
             print("Hit rate 3: %f%%" % v3.get_hit_rate())
             v1.clear_hit_rate()
             v2.clear_hit_rate()
             v3.clear_hit_rate()
-        block = raiddev.read(i * 4096, 4096)
+        block = raiddev.read(i << ashift, 1 << ashift)
         input_size, = struct.unpack_from(">I", block)
         if input_size > 128 * 1024:
             i += 1
             continue
-        block = raiddev.read(i * 4096, 4 + input_size)
+        block = raiddev.read(i << ashift, 4 + input_size)
         try:
             block = lz4_decompress(block)
         except:
             i += 1
             continue
         try:
-            print("Found at 0x%x" % (i * 4096))
+            print("Found at 0x%x" % (i << ashift))
             for j in range(len(block) // Dnode.SIZE):
                 dnode = Dnode.frombytes(block[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
                 if dnode.type != 0 and dnode.type < len(dmu_constant.TYPES) and dmu_constant.TYPES[dnode.type] != None:
@@ -62,9 +63,9 @@ def scan():
                     print(util.shift(str(ptr), 2))
         except Exception as e:
             pass
-            print("Bad at 0x%x" % (i * 4096))
+            print("Bad at 0x%x" % (i << ashift))
             print(e)
-        i += raiddev.get_asize(4 + input_size) // 4096
+        i += raiddev.get_asize(4 + input_size) >> ashift
 
 def dump():
     ub = [Uberblock.at(v1, 128*1024+i*1024) for i in range(128)]
