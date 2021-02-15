@@ -111,7 +111,7 @@ SALT: %016x""" % (self.magic, self.blk, self.numblks, self.shift, self.nextblk, 
     def get(self, name):
         # TODO: use hash
         try:
-            return self.list()[name.encode('ascii') + b'\0']
+            return self.list()[name + '\0']
         except KeyError:
             return None
 
@@ -142,7 +142,7 @@ class MicroZAP:
 
     def get(self, name):
         try:
-            return self.list()[name.encode('ascii') + b'\0']
+            return self.list()[name + '\0']
         except KeyError:
             return None
 
