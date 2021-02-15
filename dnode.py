@@ -19,22 +19,25 @@ class Dnode:
         dnode.bonus = s[64 + dnode.nblkptr * 128:64 + dnode.nblkptr * 128 + dnode.bonuslen]
         if dnode.bonustype != 0:
             if dnode.bonustype >= len(Dnode.BONUS):
-                print("Bonus " + str(dnode.bonustype) + " not implemented")
+                pass
+                #print("Bonus " + str(dnode.bonustype) + " not implemented")
             elif Dnode.BONUS[dnode.bonustype] == None:
-                print("Bonus " + str(dnode.bonustype) + " not implemented")
+                pass
+                #print("Bonus " + str(dnode.bonustype) + " not implemented")
             elif type(Dnode.BONUS[dnode.bonustype]) == str:
-                print("Bonus " + Dnode.BONUS[dnode.bonustype] + " not implemented")
+                pass
+                #print("Bonus " + Dnode.BONUS[dnode.bonustype] + " not implemented")
             else:
                 dnode.bonus = Dnode.BONUS[dnode.bonustype](dnode.bonus)
                 dnode.bonus.dnode = dnode
         if dnode.type >= len(Dnode.PROMOTE):
-            print("Dnode type " + str(dnode.type) + " not implemented")
+            #print("Dnode type " + str(dnode.type) + " not implemented")
             return dnode
         elif Dnode.PROMOTE[dnode.type] == None:
-            print("Dnode type " + str(dnode.type) + " not implemented")
+            #print("Dnode type " + str(dnode.type) + " not implemented")
             return dnode
         elif type(Dnode.PROMOTE[dnode.type]) == str:
-            print(Dnode.PROMOTE[dnode.type] + " not implemented")
+            #print(Dnode.PROMOTE[dnode.type] + " not implemented")
             return dnode
         return Dnode.PROMOTE[dnode.type](dnode, s)
 
