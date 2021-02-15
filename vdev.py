@@ -95,7 +95,7 @@ class CachedVdev(Vdev):
                 off += 512
             if len != 0:
                 r += self.__check_and_read(off)[:len]
-            return r
+            return bytes(r)
         else:
             abd_off = 0
             if off & 0x1ff != 0:
