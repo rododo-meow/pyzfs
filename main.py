@@ -153,7 +153,14 @@ def recover_file():
     block = lz4_decompress(block)
     dnode = Dnode.frombytes(block[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
     outf = open('test.mp4', 'wb')
-    outf.write(dnode.read())
+    i = 0
+    while i < dnode.secphys:
+        if i + 1024 * 1024 > dnode.secphys:
+            outf.write(dnode.read(i, dnode.secphys - i))
+            i += 1024 * 1024
+        else:
+            outf.write(dnode.read(i, 1024 * 1024))
+            i += 1024 * 1024
     outf.close()
 
 open_vdev()
