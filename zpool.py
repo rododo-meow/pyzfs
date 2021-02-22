@@ -31,29 +31,42 @@ class ZPool:
         if not isinstance(dnode, Dnode):
             raise TypeError("Require Dnode")
         curr_level = dnode.blkptr
+        for level in range(dnode.nlevels - 1, -1, -1):
+            start = blkid >> (level * (dnode.indblkshift - 7))
+            end = (blkid + nblk) >> (level * (dnode.indblkshift - 7))
+            if (blkid + nblk) & ((1 << (level * (dnode.indblkshift - 7))) - 1) != 0:
+                end += 1
+            cache = dnode.ptr_cache[level][start:end]
+            for i in range(len(cache)):
+                if cache[i] == None:
+                    # Load indirect block
+                    ptr = dnode.ptr_cache[level + 1][(start + i) >> (dnode.indblkshift - 7)]
+                    if ptr.birth == 0:
+                        blk = b''
+                    else:
+                        blk = self.read_raw(ptr)
+                    if i == 0:
+                        blk += b'\0' * (len(blk) - dnode.datablkszsec * 512)
+                    else:
+                        blk += b'\0' * (len(blk) - (1 << dnode.indblkshift))
+                    _start = ((start + i) >> (dnode.indblkshift - 7)) << (dnode.indblkshift - 7)
+                    for j in range(1 << (dnode.indblkshift - 7)):
+                        if _start + j >= len(dnode.ptr_cache[level]):
+                            break
+                        dnode.ptr_cache[level][_start + j] = BlkPtr.frombytes(blk[j * 128:j * 128 + 128])
+                    cache = dnode.ptr_cache[level][start:end]
         data = b''
-        for i in range(dnode.nlevels - 1, -1, -1):
-            data = b''
-            for idx in range(len(curr_level)):
-                ptr = curr_level[idx]
-                start = idx << (i * (dnode.indblkshift - 7))
-                end = (idx + 1) << (i * (dnode.indblkshift - 7))
-                if end <= blkid or start >= blkid + nblk:
-                    continue
-                if ptr.birth == 0:
-                    blk = b''
-                else:
-                    blk = self.read_raw(ptr)
-                if i == 0:
-                    blk += b'\0' * (len(blk) - dnode.datablkszsec * 512)
-                else:
-                    blk += b'\0' * (len(blk) - (1 << dnode.indblkshift))
-                data += blk
-            blkid = blkid & ((1 << (i * (dnode.indblkshift - 7))) - 1)
-            if i != 0:
-                curr_level = [None] * (len(data) // 128)
-                for j in range(len(curr_level)):
-                    curr_level[j] = BlkPtr.frombytes(data[j * 128:j * 128 + 128])
+        for i in range(len(cache)):
+            ptr = cache[i]
+            if ptr.birth == 0:
+                blk = b''
+            else:
+                blk = self.read_raw(ptr)
+            if i == 0:
+                blk += b'\0' * (len(blk) - dnode.datablkszsec * 512)
+            else:
+                blk += b'\0' * (len(blk) - (1 << dnode.indblkshift))
+            data += blk
         if len(data) < nblk * dnode.datablkszsec * 512:
             data += b'\0' * (nblk * dnode.datablkszsec * 512)
         return data

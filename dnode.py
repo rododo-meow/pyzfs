@@ -30,6 +30,12 @@ class Dnode:
             else:
                 dnode.bonus = Dnode.BONUS[dnode.bonustype](dnode.bonus)
                 dnode.bonus.dnode = dnode
+        dnode.ptr_cache = [None] * dnode.nlevels
+        for i in range(dnode.nlevels - 1, -1, -1):
+            n = (dnode.maxblkid + 1 + (1 << (i * (dnode.indblkshift - 7))) - 1) >> (i * (dnode.indblkshift - 7))
+            dnode.ptr_cache[i] = [None] * n
+        for i in range(len(dnode.ptr_cache[dnode.nlevels - 1])):
+            dnode.ptr_cache[dnode.nlevels - 1][i] = dnode.blkptr[i]
         if dnode.type >= len(Dnode.PROMOTE):
             #print("Dnode type " + str(dnode.type) + " not implemented")
             return dnode
@@ -44,10 +50,12 @@ class Dnode:
     def inherit(self, parent):
         self.type, self.indblkshift, self.nlevels, self.nblkptr, self.bonustype, \
                 self.checksum, self.compress, self.flags, self.datablkszsec, self.bonuslen, \
-                self.extra_slots, self.maxblkid, self.secphys, self.blkptr, self.pool, self.bonus = \
+                self.extra_slots, self.maxblkid, self.secphys, self.blkptr, self.pool, self.bonus, \
+                self.ptr_cache = \
         parent.type, parent.indblkshift, parent.nlevels, parent.nblkptr, parent.bonustype, \
                 parent.checksum, parent.compress, parent.flags, parent.datablkszsec, parent.bonuslen, \
-                parent.extra_slots, parent.maxblkid, parent.secphys, parent.blkptr, parent.pool, parent.bonus
+                parent.extra_slots, parent.maxblkid, parent.secphys, parent.blkptr, parent.pool, parent.bonus, \
+                parent.ptr_cache
 
     def read(self, offset=0, length=-1):
         if length == -1:
