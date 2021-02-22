@@ -163,5 +163,39 @@ def recover_file():
             i += 1024 * 1024
     outf.close()
 
+def collect_filenames():
+    f = open(sys.argv[1], 'r')
+    line = f.readline()
+    files = {}
+    while line != None and line != "":
+        if line.startswith('{'):
+            line = line.strip()
+            line = eval(line)
+            if '.Parent\x00' in line:
+                del line['.Parent\x00']
+            for name in line:
+                if type(line[name]) == list:
+                    line[name] = line[name][0]
+                objid = line[name] & 0xffffffff
+                if (line[name] >> 56) == 0x80:
+                    if objid in files:
+                        if not name in files[objid]:
+                            files[objid] += [name]
+                    else:
+                        files[objid] = [name]
+                elif (line[name] >> 56) == 0x40:
+                    if objid in files:
+                        if not name in files[objid]:
+                            files[objid] += [name]
+                    else:
+                        files[objid] = [name]
+            line = f.readline()
+        else:
+            line = f.readline()
+    ids = list(files.keys())
+    ids.sort()
+    for id in ids:
+        print("%d: %s" % (id, files[id]))
+    
 open_vdev()
 recover_file()
