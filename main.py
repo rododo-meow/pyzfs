@@ -9,6 +9,7 @@ import dmu_constant
 import util
 import struct
 from blkptr import BlkPtr
+import sys
 
 def open_vdev():
     global v1, v2, v3, raiddev, pool
@@ -140,5 +141,21 @@ def scan_log2():
         else:
             line = f.readline()
 
+def recover_file():
+    line = sys.stdin.readline()
+    line = line.strip()
+    addr,j,size = line.split(':')
+    addr = int(addr, 16)
+    j = int(j)
+    block = raiddev.read(addr, 4096)
+    input_size, = struct.unpack_from(">I", block)
+    block = raiddev.read(addr, 4 + input_size)
+    block = lz4_decompress(block)
+    dnode = Dnode.frombytes(block[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
+    outf = open('test.mp4', 'wb')
+    for i in range(dnode.maxblkid):
+        outf.write(pool.read_block(dnode, i))
+    outf.close()
+
 open_vdev()
-scan()
+recover_file()
