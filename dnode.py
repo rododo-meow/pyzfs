@@ -49,6 +49,16 @@ class Dnode:
                 parent.checksum, parent.compress, parent.flags, parent.datablkszsec, parent.bonuslen, \
                 parent.extra_slots, parent.maxblkid, parent.secphys, parent.blkptr, parent.pool, parent.bonus
 
+    def read(self, offset=0, length=-1):
+        if length == -1:
+            length = self.secphys
+        data = b''
+        if offset % (self.datablkszsec * 512) != 0:
+            data = self.pool.read_block(self, offset // (self.datablkszsec * 512))
+            offset = offset // (self.datablkszsec * 512) * (self.datablkszsec * 512)
+        data += self.pool.read_block(self, (length - len(data) + self.datablkszsec * 512 - 1) // (self.datablkszsec * 512))
+        return data[:length]
+
     def __str__(self):
         s = """PYTHON TYPE: %s
 TYPE: %s
