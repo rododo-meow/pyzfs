@@ -84,5 +84,61 @@ def dump():
     root = master.get("ROOT")
     root = zpl.read_object(root)
 
+def scan_log():
+    f = open(sys.argv[1], 'r')
+    line = f.readline()
+    while line != None and line != "":
+        if line.startswith('Found at '):
+            line = line.strip()
+            try:
+                addr = int(line[9:], 16)
+            except:
+                pass
+            line = f.readline()
+        elif line.startswith('    [') and line.endswith(':\n'):
+            line = f.readline()
+            block = raiddev.read(addr, 4096)
+            input_size, = struct.unpack_from(">I", block)
+            block = raiddev.read(addr, 4 + input_size)
+            block = lz4_decompress(block)
+            try:
+                for j in range(len(block) // BlkPtr.SIZE):
+                    ptr = BlkPtr.frombytes(block[j * BlkPtr.SIZE:(j + 1) * BlkPtr.SIZE])
+                    if ptr.embedded and ptr.etype == BlkPtr.ETYPE_DATA:
+                        pass
+                    elif not ptr.embedded and ptr.dva[0].vdev == 0 and ptr.dva[0].offset & 0x1ff == 0 and ptr.dva[0].asize & 0xfff == 0 and (ptr.comp == 15 or ptr.comp == 2) and ptr.type == 20:
+                        if ptr.type == 20 and ptr.nlevel != 0:
+                            print("%x[%d]:" % (addr, j,))
+            except:
+                pass
+            while line != None and line.startswith('        '):
+                line = f.readline()
+        else:
+            line = f.readline()
+
+def scan_log2():
+    f = open(sys.argv[1], 'r')
+    line = f.readline()
+    while line != None and line != "":
+        if line.startswith('Found at '):
+            line = line.strip()
+            try:
+                addr = int(line[9:], 16)
+            except:
+                pass
+            line = f.readline()
+        elif line.endswith(': FILE_CONTENT\n'):
+            index = int(line.strip()[1:-15])
+            line = f.readline()
+            try:
+                size = int(line.strip()[9:]) / 1024 / 1024 / 1024
+                print("%x:%d:%.2f" % (addr, index, size))
+            except:
+                pass
+            while line != None and line.startswith('        '):
+                line = f.readline()
+        else:
+            line = f.readline()
+
 open_vdev()
 scan()
