@@ -72,8 +72,7 @@ class ZPool:
         return data
 
     def read_bp(self, bp):
-        obj = PARSER[bp.type](self.read_raw(bp))
-        obj.pool = self
+        obj = PARSER[bp.type](self.read_raw(bp), self)
         return obj
 
     def read(self, p):
