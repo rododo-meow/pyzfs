@@ -64,7 +64,7 @@ class Dnode:
         if offset % (self.datablkszsec * 512) != 0:
             data = self.pool.read_block(self, offset // (self.datablkszsec * 512))
             offset = offset // (self.datablkszsec * 512) * (self.datablkszsec * 512)
-        data += self.pool.read_block(self, (length - len(data) + self.datablkszsec * 512 - 1) // (self.datablkszsec * 512))
+        data += self.pool.read_block(self, offset // (self.datablkszsec * 512), (length - len(data) + self.datablkszsec * 512 - 1) // (self.datablkszsec * 512))
         return data[:length]
 
     def __str__(self):
