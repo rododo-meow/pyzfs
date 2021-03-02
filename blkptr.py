@@ -52,6 +52,9 @@ class BlkPtr:
     def at(dev, off):
         return BlkPtr.frombytes(dev.read(off, 128))
 
+    def ref_to(self, off):
+        return self.dva[0].offset == off or self.dva[1].offset == off or self.dva[2].offset == off
+
     def decode(self):
         if not self.embedded:
             raise TypeError("Not an embedded blkptr")
