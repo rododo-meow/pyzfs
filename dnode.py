@@ -48,6 +48,9 @@ class Dnode:
             return dnode
         return Dnode.PROMOTE[dnode.type](dnode, s)
 
+    def get_birth(self):
+        return max([0] + [ptr.birth for ptr in self.blkptr])
+
     def inherit(self, parent):
         self.type, self.indblkshift, self.nlevels, self.nblkptr, self.bonustype, \
                 self.checksum, self.compress, self.flags, self.datablkszsec, self.bonuslen, \
