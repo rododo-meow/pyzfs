@@ -34,6 +34,8 @@ CKFUNC = (
 )
 
 def checksum(cksum, data):
+    if type(CKFUNC[cksum]) == str:
+        raise NotImplementedError("Checksum " + CKFUNC[cksum] + " not implemented")
     return CKFUNC[cksum](data)
 
 def lz4_compress(data):

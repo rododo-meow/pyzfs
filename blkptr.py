@@ -88,7 +88,7 @@ CKSUM: %s""" % (self.dva[0], self.dva[1], self.dva[2],
                     ["BIG", "LITTLE"][self.endian], dmu_constant.TYPES[self.type],
                     self.birth, self.lvl, self.fill,
                     "TRUE" if self.embedded else "FALSE",
-                    dmu_constant.CKFUNC[self.cksum], dmu_constant.COMP[self.comp], self.comp,
+                    dmu_constant.CKFUNC[self.cksum] if self.cksum < len(dmu_constant.CKFUNC) else self.cksum, dmu_constant.COMP[self.comp] if self.comp < len(dmu_constant.COMP) else self.comp, self.comp,
                     binascii.b2a_hex(self.checksum))
 
     def summary(self):
