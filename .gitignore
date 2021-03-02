@@ -2,3 +2,7 @@
 vdev1
 vdev2
 vdev3
+*.block
+*.log
+*.block.*
+*.mp4
