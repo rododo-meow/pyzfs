@@ -109,12 +109,12 @@ def raidz_map_alloc(abd, offset, size, ashift, dcols, nparity):
         rm.rm_col[c].rc_abd = ABD.allocate(rm.rm_col[c].rc_size)
         c += 1
 
-    rm.rm_col[c].rc_abd = abd.sub(0, rm.rm_col[c].rc_size)
+    rm.rm_col[c].rc_abd = ABD.allocate(rm.rm_col[c].rc_size) if abd == None else abd.sub(0, rm.rm_col[c].rc_size)
     off = rm.rm_col[c].rc_size;
 
     c = c + 1
     while c < acols:
-        rm.rm_col[c].rc_abd = abd.sub(off, rm.rm_col[c].rc_size)
+        rm.rm_col[c].rc_abd = ABD.allocate(rm.rm_col[c].rc_size) if abd == None else abd.sub(off, rm.rm_col[c].rc_size)
         off += rm.rm_col[c].rc_size;
         c += 1
 
@@ -166,6 +166,14 @@ class RaidZVdev(Vdev):
         for i in range(p.rm_firstdatacol, p.rm_cols):
             self.vdevs[p.rm_col[i].rc_devidx].read(p.rm_col[i].rc_offset + 4*1024*1024, p.rm_col[i].rc_size, p.rm_col[i].rc_abd)
         return abd.get()
+
+    def read_strips(self, offset, size):
+        p = raidz_map_alloc(None, offset, size, self.ashift, len(self.vdevs), self.nparity)
+        abds = [col.rc_abd for col in p.rm_col]
+        for i in range(p.rm_cols):
+            print("Read %d:%x:%x" % (p.rm_col[i].rc_devidx, p.rm_col[i].rc_offset, p.rm_col[i].rc_size))
+            self.vdevs[p.rm_col[i].rc_devidx].read(p.rm_col[i].rc_offset + 4*1024*1024, p.rm_col[i].rc_size, abds[i])
+        return [abd.get() for abd in abds]
 
     def get_asize(self, psize):
         ashift = self.ashift
