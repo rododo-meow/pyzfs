@@ -10,6 +10,7 @@ import util
 import struct
 from blkptr import BlkPtr
 import sys
+import traceback
 
 def open_vdev():
     global v1, v2, v3, raiddev, pool
@@ -65,7 +66,7 @@ def scan():
         except Exception as e:
             pass
             print("Bad at 0x%x" % (i << ashift))
-            print(e)
+            traceback.print_exc()
         i += raiddev.get_asize(4 + input_size) >> ashift
 
 def dump():
