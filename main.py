@@ -198,5 +198,193 @@ def collect_filenames():
     for id in ids:
         print("%d: %s" % (id, files[id]))
     
+def dump_block():
+    line = sys.stdin.readline()
+    line = line.strip()
+    addr = int(line, 16)
+    block = raiddev.read(addr, 4096)
+    input_size, = struct.unpack_from(">I", block)
+    if input_size > 128 * 1024:
+        return
+    print("Guessed psize=0x%x" % (4+input_size,))
+    block = raiddev.read(addr, 4+input_size)
+    block = lz4_decompress(block)
+    is_ptr = input("Is ptr block? (y/n)")
+    if is_ptr == 'n':
+        birth = 0
+        for j in range(len(block) // Dnode.SIZE):
+            dnode = Dnode.frombytes(block[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
+            if dnode.get_birth() > birth:
+                birth = dnode.get_birth()
+            if dnode.type != 0 and dnode.type < len(dmu_constant.TYPES) and dmu_constant.TYPES[dnode.type] != None:
+                print("    [%d]: %s (@%d)" % (j, dmu_constant.TYPES[dnode.type], dnode.get_birth()))
+            if dnode.type == 20:
+                print(dnode.list())
+            elif dnode.type == 19:
+                print("        filelen: %d" % (dnode.secphys if (dnode.flags & 1 != 0) else (dnode.secphys * 512)))
+        print("Birth: %d" % (birth,))
+    else:
+        birth = 0
+        for j in range(len(block) // BlkPtr.SIZE):
+            ptr = BlkPtr.frombytes(block[j * BlkPtr.SIZE:(j + 1) * BlkPtr.SIZE])
+            if ptr.birth > birth:
+                birth = ptr.birth
+            if ptr.embedded and ptr.etype == BlkPtr.ETYPE_DATA:
+                print("    [%d]: EMBEDDED" % (j,))
+            else:
+                print("    [%d]:" % (j,))
+                print(util.shift(str(ptr), 2))
+        print("Birth: %d" % (birth,))
+
+def dump_birth():
+    inf = open(sys.argv[1], 'r')
+    outf = open(sys.argv[2], 'w')
+    line = inf.readline()
+    while line != None and line != '':
+        line = line.strip()
+        addr = int(line, 16)
+        block = raiddev.read(addr, 4096)
+        input_size, = struct.unpack_from(">I", block)
+        block = raiddev.read(addr, 4 + input_size)
+        block = lz4_decompress(block)
+        birth = 0
+        for j in range(len(block) // BlkPtr.SIZE):
+            ptr = BlkPtr.frombytes(block[j * BlkPtr.SIZE:(j + 1) * BlkPtr.SIZE])
+            if ptr.birth > birth:
+                birth = ptr.birth
+        print("0x%x: @%d" % (addr, birth), file=outf)
+        line = inf.readline()
+    outf.close()
+    inf.close()
+
+def _dump_dnode_block(addr, block, base):
+    for j in range(len(block) // Dnode.SIZE):
+        try:
+            dnode = Dnode.frombytes(block[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
+            if dnode.type != 0 and dnode.type < len(dmu_constant.TYPES) and dmu_constant.TYPES[dnode.type] != None:
+                print("[%d] (0x%x[%d]): %s (@%d)" % (base * 32 + j, addr, j, dmu_constant.TYPES[dnode.type], dnode.get_birth()))
+        except:
+            pass
+
+def _dump_tree(addr, base):
+    if type(addr) == int:
+        block = raiddev.read(addr, 4096)
+        input_size, = struct.unpack_from(">I", block)
+        block = raiddev.read(addr, 4 + input_size)
+        block = lz4_decompress(block)
+    else:
+        if addr.endian == 0:
+            return
+        try:
+            block = pool.read_raw(addr)
+        except:
+            print("Read this ptr failed:")
+            print(util.shift(str(addr), 1))
+            return
+    for j in range(len(block) // BlkPtr.SIZE):
+        try:
+            ptr = BlkPtr.frombytes(block[j * BlkPtr.SIZE:(j + 1) * BlkPtr.SIZE])
+            if ptr.embedded and ptr.etype == BlkPtr.ETYPE_DATA:
+                print("    [%d]: EMBEDDED" % (j,))
+            elif ptr.birth == 0:
+                continue
+            elif ptr.lvl == 0:
+                addr = ptr.dva[0].offset
+                nblock = pool.read_raw(ptr)
+                if nblock == None:
+                    continue
+                _dump_dnode_block(addr, nblock, base * 1024 + j)
+            else:
+                _dump_tree(ptr, base * 1024 + j)
+        except:
+            pass
+    
+def dump_tree():
+    line = input("Root block addr: ")
+    while line != '':
+        line = line.strip()
+        addr = int(line, 16)
+        print("Root 0x%x" % (addr,))
+        try:
+            _dump_tree(addr, 0)
+        except:
+            pass
+        line = input("Root block addr: ")
+    
+def dump_0():
+    line = input("Root block addr: ")
+    while line != '':
+        line = line.strip()
+        addr = int(line, 16)
+        print("Root 0x%x" % (addr,))
+        block = raiddev.read(addr, 4096)
+        input_size, = struct.unpack_from(">I", block)
+        block = raiddev.read(addr, 4 + input_size)
+        block = lz4_decompress(block)
+        ptr = BlkPtr.frombytes(block[0:BlkPtr.SIZE])
+        print(util.shift(str(ptr), 1))
+        line = input("Root block addr: ")
+
+def dump_raw():
+    line = input("Addr: ")
+    line = line.strip()
+    addr = int(line, 16)
+    line = input("Size: ")
+    line = line.strip()
+    size = int(line, 16)
+    block = raiddev.read(addr, size)
+    outf = open("%x-%x.block" % (addr, size), "wb")
+    outf.write(block)
+    outf.close()
+
+def dump_raidz_raw():
+    line = input("Addr: ")
+    line = line.strip()
+    addr = int(line, 16)
+    line = input("Size: ")
+    line = line.strip()
+    size = int(line, 16)
+    strips = raiddev.read_strips(addr, size)
+    for i in range(len(strips)):
+        outf = open("%x-%x.block.%d" % (addr, size, i), "wb")
+        outf.write(strips[i])
+        outf.close()
+
+def dump_disk_meta():
+    ub = [Uberblock.at(v1, 128*1024+i*1024) for i in range(128)]
+    best_ub = None
+    for i in range(128):
+        if best_ub == None or ub[i].txg > best_ub.txg:
+            best_ub = ub[i]
+    print(best_ub)
+    ub = [Uberblock.at(v2, 128*1024+i*1024) for i in range(128)]
+    best_ub = None
+    for i in range(128):
+        if best_ub == None or ub[i].txg > best_ub.txg:
+            best_ub = ub[i]
+    print(best_ub)
+    ub = [Uberblock.at(v3, 128*1024+i*1024) for i in range(128)]
+    best_ub = None
+    for i in range(128):
+        if best_ub == None or ub[i].txg > best_ub.txg:
+            best_ub = ub[i]
+    print(best_ub)
+
+def dump_dnode():
+    line = sys.stdin.readline()
+    line = line.strip()
+    addr,j = line.split(':')
+    addr = int(addr, 16)
+    j = int(j)
+    block = raiddev.read(addr, 4096)
+    input_size, = struct.unpack_from(">I", block)
+    if input_size > 128 * 1024:
+        return
+    print("Guessed psize=0x%x" % (4+input_size,))
+    block = raiddev.read(addr, 4+input_size)
+    block = lz4_decompress(block)
+    dnode = Dnode.frombytes(block[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
+    print(dnode)
+
 open_vdev()
 recover_file()
