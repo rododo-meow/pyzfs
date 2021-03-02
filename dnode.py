@@ -34,8 +34,9 @@ class Dnode:
         for i in range(dnode.nlevels - 1, -1, -1):
             n = (dnode.maxblkid + 1 + (1 << (i * (dnode.indblkshift - 7))) - 1) >> (i * (dnode.indblkshift - 7))
             dnode.ptr_cache[i] = [None] * n
-        for i in range(len(dnode.ptr_cache[dnode.nlevels - 1])):
-            dnode.ptr_cache[dnode.nlevels - 1][i] = dnode.blkptr[i]
+        if dnode.nlevels != 0:
+            for i in range(len(dnode.ptr_cache[dnode.nlevels - 1])):
+                dnode.ptr_cache[dnode.nlevels - 1][i] = dnode.blkptr[i]
         if dnode.type >= len(Dnode.PROMOTE):
             #print("Dnode type " + str(dnode.type) + " not implemented")
             return dnode
