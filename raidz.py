@@ -1,6 +1,7 @@
 from vdev import Vdev
 import binascii
 from abd import ABD
+from os import path
 
 class RaidZMap:
     def __str__(self):
@@ -159,8 +160,17 @@ class RaidZVdev(Vdev):
         self.vdevs = vdevs
         self.nparity = nparity
         self.ashift = ashift
+        self.fix = None
+
+    def set_fix_directory(path):
+        self.fix = path
 
     def read(self, offset, size):
+        if self.fix != None and path.exists(self.fix + "/%x-%x.block" % (offset, size)):
+            f = open(self.fix + "/%x-%x.block" % (offset, size), "rb")
+            data = f.read()
+            f.close()
+            return data
         abd = ABD.allocate(size)
         p = raidz_map_alloc(abd, offset, size, self.ashift, len(self.vdevs), self.nparity)
         for i in range(p.rm_firstdatacol, p.rm_cols):
