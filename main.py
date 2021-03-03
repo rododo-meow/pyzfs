@@ -398,5 +398,69 @@ def dump_dnode():
     dnode = Dnode.frombytes(block[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
     print(dnode)
 
+def xor():
+    f1 = input("File 1: ")
+    f2 = input("File 2: ")
+    f3 = input("File out: ")
+    f = open(f1, 'rb')
+    c1 = f.read()
+    f.close()
+    f = open(f2, 'rb')
+    c2 = f.read()
+    f.close()
+    c3 = bytes([c1[i] ^ c2[i] for i in range(len(c1))])
+    f = open(f3, 'wb')
+    f.write(c3)
+    f.close()
+
+def menu():
+    print("0: scan")
+    print("1: dump")
+    print("2: scan_log")
+    print("3: scan_log2")
+    print("4: recover_file")
+    print("5: collect_filenames")
+    print("6: dump_block")
+    print("7: dump_birth")
+    print("8: dump_tree")
+    print("9: dump_0")
+    print("10: dump_raw")
+    print("11: dump_raidz_raw")
+    print("12: dump_disk_meta")
+    print("13: dump_dnode")
+    print("14: xor")
+    e = input("cmd?: ")
+    e = int(e)
+    if e == 0:
+        scan()
+    elif e == 1:
+        dump()
+    elif e == 2:
+        scan_log()
+    elif e == 3:
+        scan_log2()
+    elif e == 4:
+        recover_file()
+    elif e == 5:
+        collect_filenames()
+    elif e == 6:
+        dump_block()
+    elif e == 7:
+        dump_birth()
+    elif e == 8:
+        dump_tree()
+    elif e == 9:
+        dump_0()
+    elif e == 10:
+        dump_raw()
+    elif e == 11:
+        dump_raidz_raw()
+    elif e == 12:
+        dump_disk_meta()
+    elif e == 13:
+        dump_dnode()
+    elif e == 14:
+        xor()
+
 open_vdev()
-recover_file()
+dump_0()
