@@ -159,15 +159,21 @@ class ZAPObj(Dnode):
 
     def inherit(self, parent):
         Dnode.inherit(self, parent)
-        data = self.pool.read_block(self, 0)
-        self.zap_type, = struct.unpack("<Q", data[:8])
-        if self.zap_type == ZAPObj.ZBT_HEADER:
-            self.fatzap = FatZAP.frombytes(data)
-            self.fatzap.pool = self.pool
-            self.fatzap.obj = self
-        elif self.zap_type == ZAPObj.ZBT_MICRO:
-            self.microzap = MicroZAP.frombytes(data)
-            self.microzap.pool = self.pool
+        try:
+            data = self.pool.read_block(self, 0)
+            self.zap_type, = struct.unpack("<Q", data[:8])
+            if self.zap_type == ZAPObj.ZBT_HEADER:
+                self.fatzap = FatZAP.frombytes(data)
+                self.fatzap.pool = self.pool
+                self.fatzap.obj = self
+            elif self.zap_type == ZAPObj.ZBT_MICRO:
+                self.microzap = MicroZAP.frombytes(data)
+                self.microzap.pool = self.pool
+            else:
+                print("Unknown zap type " + str(self.zap_type))
+        except:
+            print("Read zap header failed")
+            self.zap_type = 0
 
     def __str__(self):
         s = Dnode.__str__(self) + "\n"
