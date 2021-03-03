@@ -162,12 +162,13 @@ class RaidZVdev(Vdev):
         self.ashift = ashift
         self.fix = None
 
-    def set_fix_directory(path):
+    def set_fix_directory(self, path):
         self.fix = path
 
     def read(self, offset, size):
-        if self.fix != None and path.exists(self.fix + "/%x-%x.block" % (offset, size)):
-            f = open(self.fix + "/%x-%x.block" % (offset, size), "rb")
+        fix_path = self.fix + "/%x-%x.block" % (offset, ((size + (1 << self.ashift) - 1) >> self.ashift) << self.ashift)
+        if self.fix != None and path.exists(fix_path):
+            f = open(fix_path, "rb")
             data = f.read()
             f.close()
             return data
