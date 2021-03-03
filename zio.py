@@ -85,11 +85,12 @@ def read(vdevs, bp):
                 continue
             data = vdevs[dva.vdev].read(dva.offset, bp.psize)
             data = data[:bp.psize]
-            if bp.checksum != checksum(bp.cksum, data):
-                print("Bad checksum")
-                print("BP: %s" % (binascii.b2a_hex(bp.checksum)))
-                print("My: %s" % (binascii.b2a_hex(checksum(bp.cksum, data))))
-                continue
+            if bp.lvl == -1:
+                if bp.checksum != checksum(bp.cksum, data):
+                    print("Bad checksum")
+                    print("BP: %s" % (binascii.b2a_hex(bp.checksum)))
+                    print("My: %s" % (binascii.b2a_hex(checksum(bp.cksum, data))))
+                    continue
             data = decompress(bp.comp, data)
             return data
         return None
