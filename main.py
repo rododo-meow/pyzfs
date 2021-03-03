@@ -11,6 +11,7 @@ import struct
 from blkptr import BlkPtr
 import sys
 import traceback
+import sys
 
 def open_vdev():
     global v1, v2, v3, raiddev, pool
@@ -66,7 +67,7 @@ def scan():
         except Exception as e:
             pass
             print("Bad at 0x%x" % (i << ashift))
-            traceback.print_exc()
+            traceback.print_exc(file=sys.stdout)
         i += raiddev.get_asize(4 + input_size) >> ashift
 
 def dump():
@@ -264,7 +265,7 @@ def _dump_dnode_block(addr, block, base):
             if dnode.type != 0 and dnode.type < len(dmu_constant.TYPES) and dmu_constant.TYPES[dnode.type] != None:
                 print("[%d] (0x%x[%d]): %s (@%d)" % (base * 32 + j, addr, j, dmu_constant.TYPES[dnode.type], dnode.get_birth()))
         except:
-            pass
+            traceback.print_exc(file=sys.stdout)
 
 def _dump_tree(addr, base):
     if type(addr) == int:
@@ -280,6 +281,7 @@ def _dump_tree(addr, base):
         except:
             print("Read this ptr failed:")
             print(util.shift(str(addr), 1))
+            traceback.print_exc(file=sys.stdout)
             return
     for j in range(len(block) // BlkPtr.SIZE):
         try:
@@ -300,16 +302,17 @@ def _dump_tree(addr, base):
             pass
     
 def dump_tree():
-    line = input("Root block addr: ")
-    while line != '':
-        line = line.strip()
-        addr = int(line, 16)
-        print("Root 0x%x" % (addr,))
-        try:
-            _dump_tree(addr, 0)
-        except:
-            pass
-        line = input("Root block addr: ")
+    line = input("Root ptr: ")
+    line = line.strip()
+    addr = int(line, 16)
+    line = input("Out: ")
+    line = line.strip()
+    sys.stdout = open(line, 'w')
+    print("Root 0x%x" % (addr,))
+    try:
+        _dump_tree(addr, 0)
+    except:
+        traceback.print_exc(file=sys.stdout)
     
 def dump_0():
     line = input("Root block addr: ")
