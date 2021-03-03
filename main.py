@@ -264,6 +264,15 @@ def _dump_dnode_block(addr, block, base):
             dnode = Dnode.frombytes(block[j * Dnode.SIZE:(j + 1) * Dnode.SIZE], pool)
             if dnode.type != 0 and dnode.type < len(dmu_constant.TYPES) and dmu_constant.TYPES[dnode.type] != None:
                 print("[%d] (0x%x[%d]): %s (@%d)" % (base * 32 + j, addr, j, dmu_constant.TYPES[dnode.type], dnode.get_birth()))
+            if dnode.type == 20:
+                lst = dnode.list()
+                for name in lst:
+                    if type(lst[name]) == list:
+                        lst[name] = lst[name][0]
+                    lst[name] = lst[name] & 0x00ffffffffffffff
+                print("    " + str(lst))
+            elif dnode.type == 19:
+                print("    filelen: %d" % (dnode.secphys if (dnode.flags & 1 != 0) else (dnode.secphys * 512)))
         except:
             traceback.print_exc(file=sys.stdout)
 
