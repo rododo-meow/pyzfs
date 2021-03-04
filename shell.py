@@ -3,6 +3,7 @@ from blkptr import BlkPtr
 import traceback
 import struct
 from dnode import Dnode
+import os
 
 root_ptr = 0
 root_blk = b''
@@ -18,13 +19,11 @@ def _get_dnode(objid):
     while lvl >= 0:
         idx = objid // (32 * 1024 ** lvl) % 1024
         ptr = BlkPtr.frombytes(blk[idx * BlkPtr.SIZE:(idx + 1) * BlkPtr.SIZE])
-        print(ptr)
         blk = pool.read_raw(ptr)
         lvl -= 1
     idx = objid % 32
     dnode = blk[idx * Dnode.SIZE:(idx + 1) * Dnode.SIZE]
     dnode = Dnode.frombytes(dnode, pool)
-    print(dnode)
     return dnode
 
 def _shell_root(new_root):
@@ -38,7 +37,7 @@ def _shell_root(new_root):
     print("Root pointer set to 0x%x, orig 0x%x" % (root_ptr, old_root))
 
 def _shell_help():
-    print("root, help, cd, goto, recover, pwd, ls")
+    print("root, help, cd, goto, recover, pwd, ls, exit")
 
 def _shell_cd():
     pass
@@ -54,9 +53,28 @@ def _shell_pwd():
     print('/' + '/'.join(pwd_path))
     print('/'.join([str(objid) for objid in pwd_objid]))
 
-def _shell_ls():
+def _show(lst):
+    width = max([len(s) for s in lst]) + 5
+    ncols = os.get_terminal_size().columns // width
+    height = (len(lst) + ncols - 1) // ncols
+    cols = [None] * ncols
+    for i in range(ncols):
+        if len(lst) % ncols == 0 or i < len(lst) % ncols:
+            cols[i] = lst[i * height:(i + 1) * height]
+        else:
+            cols[i] = lst[i * height - i - len(lst) % ncols + 1:(i + 1) * height - i - len(lst) % ncols]
+    lines = zip(*cols)
+    for line in lines:
+        print((("%-" + str(width) + "s") * ncols) % line)
+
+def _shell_ls(argv):
     lst = pwd_obj[-1].list()
-    print(pwd_obj[-1].list())
+    if '\x00' in lst:
+        del lst['\x00']
+    names = list(lst.keys())
+    names.sort()
+    lst = [name[:-1] + ":" + str(lst[name] & 0x00ffffffffffffff) for name in names]
+    _show(lst)
 
 def shell(_pool):
     global pool
@@ -79,7 +97,7 @@ def shell(_pool):
             elif line[0] == 'pwd':
                 _shell_pwd()
             elif line[0] == 'ls':
-                _shell_ls()
+                _shell_ls(line[1:])
             elif line[0] == 'exit':
                 break
             else:
