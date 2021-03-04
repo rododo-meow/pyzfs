@@ -12,6 +12,7 @@ from blkptr import BlkPtr
 import sys
 import traceback
 import sys
+from shell import shell
 
 def open_vdev():
     global v1, v2, v3, raiddev, pool
@@ -429,6 +430,7 @@ def menu():
     print("12: dump_disk_meta")
     print("13: dump_dnode")
     print("14: xor")
+    print("15: shell")
     e = input("cmd?: ")
     e = int(e)
     if e == 0:
@@ -461,6 +463,8 @@ def menu():
         dump_dnode()
     elif e == 14:
         xor()
+    elif e == 15:
+        shell(pool)
 
 open_vdev()
-dump_0()
+menu()
