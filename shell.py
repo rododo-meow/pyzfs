@@ -42,6 +42,63 @@ def _shell_help():
 def _shell_cd():
     pass
 
+def _recover_file(objid, path):
+    if os.path.exists(path):
+        return
+    try:
+        dnode = _get_dnode(objid)
+        with open(path, 'wb') as outf:
+            i = 0
+            while i < dnode.secphys:
+                if i + 1024 * 1024 > dnode.secphys:
+                    outf.write(dnode.read(i, dnode.secphys - i))
+                    i += 1024 * 1024
+                else:
+                    outf.write(dnode.read(i, 1024 * 1024))
+                    i += 1024 * 1024
+    except:
+        outf = open(path + ".fail", 'w')
+        traceback.print_exc(file=outf)
+        outf.close()
+
+def _recover_dir(objid, path):
+    try:
+        dnode = _get_dnode(objid)
+        lst = dnode.list()
+        names = lst.keys()
+    except:
+        outf = open(path + ".fail", 'w')
+        traceback.print_exc(file=outf)
+        outf.close()
+        return
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        pass
+    for name in names:
+        child_id = lst[name]
+        if type(child_id) == list:
+            child_id = child_id[0]
+        child_type = child_id >> 56
+        child_id = child_id & ((1 << 56) - 1)
+        name = name[:-1]
+        if name == '':
+            continue
+        if child_type == 0x40:
+            # Directory
+            _recover_dir(child_id, path + "/" + name)
+        elif child_type == 0x80:
+            # File
+            _recover_file(child_id, path + "/" + name)
+        else:
+            print("Unknown child type " + str(child_type))
+
+def _shell_recover(argv):
+    confirm = input("Recover %s to %s? (y/n): " % ("/" + "/".join(pwd_path), argv[0]))
+    if confirm != 'y':
+        return
+    _recover_dir(pwd_objid[-1], argv[0] + "/" + "/".join(pwd_path))
+
 def _shell_goto(objid):
     global pwd_objid, root_objid, pwd_path, pwd_obj
     root_objid = objid
@@ -136,7 +193,7 @@ def shell(_pool):
             elif line[0] == 'goto':
                 _shell_goto(int(line[1]))
             elif line[0] == 'recover':
-                pass
+                _shell_recover(line[1:])
             elif line[0] == 'pwd':
                 _shell_pwd()
             elif line[0] == 'ls':
