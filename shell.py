@@ -166,7 +166,7 @@ def _shell_ls(argv):
         del lst['\x00']
     names = list(lst.keys())
     names.sort()
-    lst = [name[:-1] + ":" + str(lst[name] & 0x00ffffffffffffff) for name in names]
+    lst = [name[:-1] + ":" + str((lst[name] if type(lst[name]) == int else lst[name][0]) & 0x00ffffffffffffff) for name in names]
     _show(lst)
 
 def _shell_show_dnode(argv):
