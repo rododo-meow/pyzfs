@@ -11,6 +11,7 @@ pwd_objid = []
 pwd_obj = []
 pwd_path = []
 pool = None
+alter_roots = []
 
 def _get_dnode(objid):
     lvl = BlkPtr.frombytes(root_blk[:BlkPtr.SIZE])
@@ -25,6 +26,34 @@ def _get_dnode(objid):
     dnode = blk[idx * Dnode.SIZE:(idx + 1) * Dnode.SIZE]
     dnode = Dnode.frombytes(dnode, pool)
     return dnode
+
+def _get_dnode_with_alter(objid):
+    global root_blk, root_ptr
+    root_ptr_bak = root_ptr
+    root_blk_bak = root_blk
+    final_e = None
+    try:
+        return _get_dnode(objid)
+    except Exception as e:
+        final_e = e
+    for alter in alter_roots:
+        new_root = alter
+        try:
+            block = pool.vdevs[0].read(new_root, 4096)
+            input_size, = struct.unpack_from(">I", block)
+            if input_size > 128 * 1024:
+                continue
+            block = pool.vdevs[0].read(new_root, 4 + input_size)
+            root_blk = lz4_decompress(block)
+            root_ptr = new_root
+            dnode = _get_dnode(objid)
+            return dnode
+        except Exception as e:
+            final_e = e
+        finally:
+            root_ptr = root_ptr_bak
+            root_blk = root_blk_bak
+    raise Exception("get dnode with alter failed") from final_e
 
 def _shell_root(new_root):
     global root_ptr, root_blk
@@ -46,7 +75,7 @@ def _recover_file(objid, path):
     if os.path.exists(path):
         return
     try:
-        dnode = _get_dnode(objid)
+        dnode = _get_dnode_with_alter(objid)
         with open(path, 'wb') as outf:
             i = 0
             while i < dnode.secphys:
@@ -63,7 +92,7 @@ def _recover_file(objid, path):
 
 def _recover_dir(objid, path):
     try:
-        dnode = _get_dnode(objid)
+        dnode = _get_dnode_with_alter(objid)
         lst = dnode.list()
         names = lst.keys()
     except:
@@ -103,7 +132,7 @@ def _shell_goto(objid):
     global pwd_objid, root_objid, pwd_path, pwd_obj
     root_objid = objid
     pwd_objid = [objid]
-    pwd_obj = [_get_dnode(objid)]
+    pwd_obj = [_get_dnode_with_alter(objid)]
     pwd_path = []
 
 def _shell_pwd():
@@ -176,6 +205,16 @@ def _shell_show_block(argv):
             block = block[:int(argv[2])]
     hexdump(block)
 
+def _shell_alter_root_file(argv):
+    global alter_roots
+    alter_roots = []
+    f = open(argv[0], 'r')
+    line = f.readline()
+    while line != None and line != '':
+        addr = int(line.strip(), 16)
+        alter_roots += [addr]
+        line = f.readline()
+
 def shell(_pool):
     global pool
     pool = _pool
@@ -204,6 +243,8 @@ def shell(_pool):
                 _shell_show_dnode(line[1:])
             elif line[0] == 'show_block':
                 _shell_show_block(line[1:])
+            elif line[0] == 'alter_root_file':
+                _shell_alter_root_file(line[1:])
             else:
                 _shell_help()
         except:
