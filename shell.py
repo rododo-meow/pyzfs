@@ -78,6 +78,47 @@ def _shell_ls(argv):
     lst = [name[:-1] + ":" + str(lst[name] & 0x00ffffffffffffff) for name in names]
     _show(lst)
 
+def _shell_show_dnode(argv):
+    if len(argv) == 2:
+        pass
+    else:
+        dnode = _get_dnode_with_alter(int(argv[0]))
+        print(dnode)
+
+def hexdump(s):
+    for i in range((len(s) + 15) // 16):
+        line = "%04x: " % (i * 16)
+        for j in range(i * 16, i * 16 + 16):
+            if j >= len(s):
+                line += "   "
+            else:
+                line += "%02x " % (s[i])
+        print(line)
+
+def _shell_show_block(argv):
+    if '-d' in argv:
+        decompress = True
+        argv = filter(lambda x:x != '-d', argv)
+    else:
+        decompress = False
+    addr = int(argv[0], 16)
+    if decompress:
+        block = pool.vdevs[0].read(addr, 4096)
+        input_size, = struct.unpack_from(">I", block)
+        if input_size > 128 * 1024:
+            print("Decompress failed")
+            return
+        block = pool.vdevs[0].read(addr, 4 + input_size)
+        block = lz4_decompress(block)
+        if len(argv) >= 2:
+            block = block[:int(argv[1])]
+    else:
+        size = int(argv[1], 16)
+        block = pool.vdevs[0].read(addr, size)
+        if len(argv) >= 3:
+            block = block[:int(argv[2])]
+    hexdump(block)
+
 def shell(_pool):
     global pool
     pool = _pool
@@ -102,6 +143,10 @@ def shell(_pool):
                 _shell_ls(line[1:])
             elif line[0] == 'exit':
                 break
+            elif line[0] == 'show_dnode':
+                _shell_show_dnode(line[1:])
+            elif line[0] == 'show_block':
+                _shell_show_block(line[1:])
             else:
                 _shell_help()
         except:
