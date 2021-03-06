@@ -20,7 +20,10 @@ def _get_dnode(objid):
     while lvl >= 0:
         idx = objid // (32 * 1024 ** lvl) % 1024
         ptr = BlkPtr.frombytes(blk[idx * BlkPtr.SIZE:(idx + 1) * BlkPtr.SIZE])
-        blk = pool.read_raw(ptr)
+        try:
+            blk = pool.read_raw(ptr)
+        except Exception as e:
+            raise Exception("Read blkptr " + str(ptr) + " failed") from e
         lvl -= 1
     idx = objid % 32
     dnode = blk[idx * Dnode.SIZE:(idx + 1) * Dnode.SIZE]
