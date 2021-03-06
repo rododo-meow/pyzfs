@@ -61,11 +61,13 @@ def _get_dnode_with_alter(objid):
 def _shell_root(new_root):
     global root_ptr, root_blk
     old_root = root_ptr
-    root_ptr = new_root
-    block = pool.vdevs[0].read(root_ptr, 4096)
+    block = pool.vdevs[0].read(new_root, 4096)
     input_size, = struct.unpack_from(">I", block)
-    block = pool.vdevs[0].read(root_ptr, 4 + input_size)
+    if input_size > 128 * 1024:
+        return
+    block = pool.vdevs[0].read(new_root, 4 + input_size)
     root_blk = lz4_decompress(block)
+    root_ptr = new_root
     print("Root pointer set to 0x%x, orig 0x%x" % (root_ptr, old_root))
 
 def _shell_help():
