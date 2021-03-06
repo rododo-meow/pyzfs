@@ -54,6 +54,8 @@ def _shell_pwd():
     print('/'.join([str(objid) for objid in pwd_objid]))
 
 def _show(lst):
+    if len(lst) == 0:
+        return
     width = max([len(s) for s in lst]) + 5
     ncols = os.get_terminal_size().columns // width
     height = (len(lst) + ncols - 1) // ncols
