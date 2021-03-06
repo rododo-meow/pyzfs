@@ -13,5 +13,5 @@ class ABD:
     def get(self):
         b = bytes()
         for s in self.scatter:
-            b += bytes(s[0])
+            b += bytes(s[0][s[1]:s[1] + s[2]])
         return b
